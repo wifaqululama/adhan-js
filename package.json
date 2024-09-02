@@ -91,5 +91,8 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "temporal-polyfill": "^0.2.5"
   }
 }
