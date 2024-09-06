@@ -9,7 +9,7 @@ import {
   dateByAddingMinutes,
   dateByAddingSeconds,
   dayOfYear,
-  isValidDate,
+  isValidDateTime,
   roundedMinute,
 } from './DateUtils';
 import { shadowLength } from './Madhab';
@@ -18,56 +18,45 @@ import {
   polarCircleResolvedValues,
 } from './PolarCircleResolution';
 import { ValueOf } from './TypeUtils';
+import { Temporal } from 'temporal-polyfill';
 
 export default class PrayerTimes {
-  fajr: Date;
-  sunrise: Date;
-  dhuhr: Date;
-  asr: Date;
-  sunset: Date;
-  maghrib: Date;
-  isha: Date;
+  fajr: Temporal.Instant;
+  sunrise: Temporal.Instant;
+  dhuhr: Temporal.Instant;
+  asr: Temporal.Instant;
+  sunset: Temporal.Instant;
+  maghrib: Temporal.Instant;
+  isha: Temporal.Instant;
 
   // eslint-disable-next-line complexity
   constructor(
     public coordinates: Coordinates,
-    public date: Date,
+    public date: Temporal.PlainDate,
     public calculationParameters: CalculationParameters,
   ) {
     let solarTime = new SolarTime(date, coordinates);
 
-    let fajrTime: Date;
-    let sunriseTime: Date;
-    let dhuhrTime: Date;
-    let asrTime: Date;
-    let sunsetTime: Date;
-    let maghribTime: Date;
-    let ishaTime: Date;
+    let fajrTime: Temporal.PlainDateTime;
+    let sunriseTime: Temporal.PlainDateTime;
+    let dhuhrTime: Temporal.PlainDateTime;
+    let asrTime: Temporal.PlainDateTime;
+    let sunsetTime: Temporal.PlainDateTime;
+    let maghribTime: Temporal.PlainDateTime;
+    let ishaTime: Temporal.PlainDateTime;
 
     let nightFraction;
 
-    dhuhrTime = new TimeComponents(solarTime.transit).utcDate(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
-    sunriseTime = new TimeComponents(solarTime.sunrise).utcDate(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
-    sunsetTime = new TimeComponents(solarTime.sunset).utcDate(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
-    const tomorrow = dateByAddingDays(date, 1);
+    dhuhrTime = new TimeComponents(solarTime.transit).dateTime(date);
+    sunriseTime = new TimeComponents(solarTime.sunrise).dateTime(date);
+    sunsetTime = new TimeComponents(solarTime.sunset).dateTime(date);
+    const tomorrow = date.add({ days: 1 });
     let tomorrowSolarTime = new SolarTime(tomorrow, coordinates);
 
     const polarCircleResolver = calculationParameters.polarCircleResolution;
     if (
-      (!isValidDate(sunriseTime) ||
-        !isValidDate(sunsetTime) ||
+      (!isValidDateTime(sunriseTime) ||
+        !isValidDateTime(sunsetTime) ||
         isNaN(tomorrowSolarTime.sunrise)) &&
       polarCircleResolver !== PolarCircleResolution.Unresolved
     ) {
@@ -78,36 +67,24 @@ export default class PrayerTimes {
       );
       solarTime = resolved.solarTime;
       tomorrowSolarTime = resolved.tomorrowSolarTime;
-      const dateComponents = [
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-      ] as const;
-
-      dhuhrTime = new TimeComponents(solarTime.transit).utcDate(
-        ...dateComponents,
-      );
-      sunriseTime = new TimeComponents(solarTime.sunrise).utcDate(
-        ...dateComponents,
-      );
-      sunsetTime = new TimeComponents(solarTime.sunset).utcDate(
-        ...dateComponents,
-      );
+      dhuhrTime = new TimeComponents(solarTime.transit).dateTime(date);
+      sunriseTime = new TimeComponents(solarTime.sunrise).dateTime(date);
+      sunsetTime = new TimeComponents(solarTime.sunset).dateTime(date);
     }
 
     // eslint-disable-next-line prefer-const
     asrTime = new TimeComponents(
       solarTime.afternoon(shadowLength(calculationParameters.madhab)),
-    ).utcDate(date.getFullYear(), date.getMonth(), date.getDate());
+    ).dateTime(date);
 
     const tomorrowSunrise = new TimeComponents(
       tomorrowSolarTime.sunrise,
-    ).utcDate(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+    ).dateTime(tomorrow);
     const night = (Number(tomorrowSunrise) - Number(sunsetTime)) / 1000;
 
     fajrTime = new TimeComponents(
       solarTime.hourAngle(-1 * calculationParameters.fajrAngle, false),
-    ).utcDate(date.getFullYear(), date.getMonth(), date.getDate());
+    ).dateTime(date);
 
     // special case for moonsighting committee above latitude 55
     if (

@@ -1,6 +1,7 @@
 import Astronomical from './Astronomical';
 import { Rounding } from './Rounding';
 import { ValueOf } from './TypeUtils';
+import { Temporal } from 'temporal-polyfill';
 
 export function dateByAddingDays(date: Date, days: number) {
   const year = date.getFullYear();
@@ -50,4 +51,8 @@ export function dayOfYear(date: Date) {
 
 export function isValidDate(date: Date) {
   return date instanceof Date && !isNaN(date.valueOf());
+}
+
+export function isValidDateTime(date: Temporal.PlainDateTime) {
+  return false; //TODO sort this out
 }

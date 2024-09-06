@@ -2,6 +2,7 @@ import Astronomical from './Astronomical';
 import type Coordinates from './Coordinates';
 import { degreesToRadians, radiansToDegrees } from './MathUtils';
 import SolarCoordinates from './SolarCoordinates';
+import { Temporal } from 'temporal-polyfill';
 
 export default class SolarTime {
   observer: Coordinates;
@@ -13,11 +14,11 @@ export default class SolarTime {
   sunrise: number;
   sunset: number;
 
-  constructor(date: Date, coordinates: Coordinates) {
+  constructor(date: Temporal.PlainDate, coordinates: Coordinates) {
     const julianDay = Astronomical.julianDay(
-      date.getFullYear(),
-      date.getMonth() + 1,
-      date.getDate(),
+      date.year,
+      date.month + 1, //TODO Is this correct?
+      date.day,
       0,
     );
 

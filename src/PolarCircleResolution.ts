@@ -2,6 +2,7 @@ import Coordinates from './Coordinates';
 import SolarTime from './SolarTime';
 import { dateByAddingDays } from './DateUtils';
 import { ValueOf } from './TypeUtils';
+import { Temporal } from 'temporal-polyfill';
 
 export const PolarCircleResolution = {
   AqrabBalad: 'AqrabBalad',
@@ -17,12 +18,12 @@ const isValidSolarTime = (solarTime: SolarTime) =>
 
 const aqrabYaumResolver = (
   coordinates: Coordinates,
-  date: Date,
+  date: Temporal.PlainDateTime,
   daysAdded = 1,
   direction = 1,
 ): {
-  date: Date;
-  tomorrow: Date;
+  date: Temporal.PlainDateTime;
+  tomorrow: Temporal.PlainDateTime;
   coordinates: Coordinates;
   solarTime: SolarTime;
   tomorrowSolarTime: SolarTime;
@@ -30,11 +31,10 @@ const aqrabYaumResolver = (
   if (daysAdded > Math.ceil(365 / 2)) {
     return null;
   }
-  const testDate = new Date(date.getTime());
-  testDate.setDate(testDate.getDate() + direction * daysAdded);
-  const tomorrow = dateByAddingDays(testDate, 1);
-  const solarTime = new SolarTime(testDate, coordinates);
-  const tomorrowSolarTime = new SolarTime(tomorrow, coordinates);
+  const testDate = date.add({ days: direction * daysAdded });
+  const tomorrow = date.add({ days: 1 });
+  const solarTime = new SolarTime(testDate.toPlainDate(), coordinates);
+  const tomorrowSolarTime = new SolarTime(tomorrow.toPlainDate(), coordinates);
 
   if (!isValidSolarTime(solarTime) || !isValidSolarTime(tomorrowSolarTime)) {
     return aqrabYaumResolver(
@@ -56,17 +56,17 @@ const aqrabYaumResolver = (
 
 const aqrabBaladResolver = (
   coordinates: Coordinates,
-  date: Date,
+  date: Temporal.PlainDate,
   latitude: number,
 ): {
-  date: Date;
-  tomorrow: Date;
+  date: Temporal.PlainDate;
+  tomorrow: Temporal.PlainDate;
   coordinates: Coordinates;
   solarTime: SolarTime;
   tomorrowSolarTime: SolarTime;
 } | null => {
   const solarTime = new SolarTime(date, { ...coordinates, latitude });
-  const tomorrow = dateByAddingDays(date, 1);
+  const tomorrow = date.add({ days: 1 });
   const tomorrowSolarTime = new SolarTime(tomorrow, {
     ...coordinates,
     latitude,
@@ -92,20 +92,27 @@ const aqrabBaladResolver = (
 
 export const polarCircleResolvedValues = (
   resolver: ValueOf<typeof PolarCircleResolution>,
-  date: Date,
+  date: Temporal.PlainDate,
   coordinates: Coordinates,
 ) => {
   const defaultReturn = {
     date,
-    tomorrow: dateByAddingDays(date, 1),
+    tomorrow: date.add({ days: 1 }),
     coordinates,
     solarTime: new SolarTime(date, coordinates),
-    tomorrowSolarTime: new SolarTime(dateByAddingDays(date, 1), coordinates),
+    tomorrowSolarTime: new SolarTime(date.add({ days: 1 }), coordinates),
   };
 
   switch (resolver) {
     case PolarCircleResolution.AqrabYaum: {
-      return aqrabYaumResolver(coordinates, date) || defaultReturn;
+      const dateTime = Temporal.PlainDateTime.from({
+        year: date.year,
+        month: date.month,
+        day: date.day,
+        hour: 12,
+        minute: 0,
+      });
+      return aqrabYaumResolver(coordinates, dateTime) || defaultReturn;
     }
     case PolarCircleResolution.AqrabBalad: {
       const { latitude } = coordinates;
